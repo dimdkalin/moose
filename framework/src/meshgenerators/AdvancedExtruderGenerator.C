@@ -285,6 +285,12 @@ AdvancedExtruderGenerator::AdvancedExtruderGenerator(const InputParameters & par
                  "element of downward_boundary_source_blocks.");
 }
 
+std::unique_ptr<pugi::xml_document>
+AdvancedExtruderGenerator::generateCSG()
+{
+  MeshGenerator::generateCSG();
+}
+
 std::unique_ptr<MeshBase>
 AdvancedExtruderGenerator::generate()
 {
@@ -491,12 +497,10 @@ AdvancedExtruderGenerator::generate()
           boundary_info.add_node(new_node, ids_to_copy);
         else
           for (const auto & id_to_copy : ids_to_copy)
-          {
             boundary_info.add_node(new_node,
                                    _boundary_swap_pairs[e].count(id_to_copy)
                                        ? _boundary_swap_pairs[e][id_to_copy]
                                        : id_to_copy);
-          }
 
         old_distance = current_distance;
         current_node_layer++;

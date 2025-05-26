@@ -1,5 +1,5 @@
 //* This file is part of the MOOSE framework
-//* https://mooseframework.inl.gov
+//* https://www.mooseframework.org
 //*
 //* All rights reserved, see COPYRIGHT for full restrictions
 //* https://github.com/idaholab/moose/blob/master/COPYRIGHT
@@ -23,8 +23,13 @@ public:
   PolygonConcentricCircleMeshGeneratorBase(const InputParameters & parameters);
 
   std::unique_ptr<MeshBase> generate() override;
+  std::unique_ptr<pugi::xml_document> generateCSG() override;
 
 protected:
+  /// Used for surface ID generation
+  int _surfID {1};
+  /// Used for cell ID generation
+  int _cellID {1};
   /// Number of polygon sides
   const unsigned int _num_sides;
   /// Thickness of each enclosing duct

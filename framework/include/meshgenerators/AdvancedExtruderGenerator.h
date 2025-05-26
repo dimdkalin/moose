@@ -24,6 +24,7 @@ public:
   AdvancedExtruderGenerator(const InputParameters & parameters);
 
   std::unique_ptr<MeshBase> generate() override;
+  std::unique_ptr<pugi::xml_document> generateCSG() override;
 
 protected:
   /// Mesh that comes from another generator

@@ -1,5 +1,5 @@
 //* This file is part of the MOOSE framework
-//* https://mooseframework.inl.gov
+//* https://www.mooseframework.org
 //*
 //* All rights reserved, see COPYRIGHT for full restrictions
 //* https://github.com/idaholab/moose/blob/master/COPYRIGHT
@@ -18,6 +18,9 @@
 
 #include "libmesh/mesh_base.h"
 #include "libmesh/parameters.h"
+
+#include "pugixml.hpp"
+#include <cstring>
 
 class MooseMesh;
 namespace libMesh
@@ -67,6 +70,12 @@ public:
    * Generate / modify the mesh
    */
   virtual std::unique_ptr<MeshBase> generate() = 0;
+
+  /**
+   * Generate / modify the CSG tree
+   */
+  virtual std::unique_ptr<pugi::xml_document> generateCSG();
+
 
   /**
    * Internal generation method - this is what is actually called
@@ -196,6 +205,24 @@ protected:
   virtual void generateData();
 
   /**
+   * Helper method for setting attributes in CSG trees
+   */
+  template <typename T>
+  void set_attribute(const std::string & name, const T & value, pugi::xml_node & node);
+
+  /**
+   * Helper method for making surfaces in CSG trees
+   */
+  void make_surface(int surfID, const std::string & coeffs, const std::string & type, pugi::xml_node & node);
+   /**
+   * Helper method for making surfaces in CSG trees with explicit boundary conditions
+   */
+  void make_surface(int surfID, const std::string & coeffs, const std::string & type, const std::string & boundary, pugi::xml_node & node);
+  /**
+   * Helper method for making cells in CSG trees
+   */
+  void make_cell(int cellID, const std::string & material, const std::string & region, int universe, pugi::xml_node & node);
+  /**
    * Methods for writing out attributes to the mesh meta-data store, which can be retrieved from
    * most other MOOSE systems and is recoverable.
    */
@@ -264,6 +291,9 @@ protected:
    */
   [[nodiscard]] std::unique_ptr<MeshBase> & getMesh(const std::string & param_name,
                                                     const bool allow_invalid = false);
+
+ // [[nodiscard]] std::unique_ptr<pugi::xml_document> & getCSG(const std::string & param_name,
+                                                    //  const bool allow_invalid = false);
   /**
    * Like getMesh(), but for multiple generators.
    *
@@ -279,6 +309,9 @@ protected:
    */
   [[nodiscard]] std::unique_ptr<MeshBase> &
   getMeshByName(const MeshGeneratorName & mesh_generator_name);
+
+ // [[nodiscard]] std::unique_ptr<pugi::xml_document> &
+ // getCSGByName(const MeshGeneratorName & mesh_generator_name);
   /**
    * Like getMeshByName(), but for multiple generators.
    *
@@ -432,6 +465,7 @@ private:
 
   /// A nullptr to use for when inputs aren't specified
   std::unique_ptr<MeshBase> _null_mesh = nullptr;
+  std::unique_ptr<pugi::xml_document> _null_CSG = nullptr;
 
   /// The MeshGenerators that are parents to this MeshGenerator
   std::set<const MeshGenerator *, Comparator> _parent_mesh_generators;

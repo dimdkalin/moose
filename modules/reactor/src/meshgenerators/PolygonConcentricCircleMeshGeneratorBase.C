@@ -1,5 +1,5 @@
 //* This file is part of the MOOSE framework
-//* https://mooseframework.inl.gov
+//* https://www.mooseframework.org
 //*
 //* All rights reserved, see COPYRIGHT for full restrictions
 //* https://github.com/idaholab/moose/blob/master/COPYRIGHT
@@ -608,6 +608,55 @@ PolygonConcentricCircleMeshGeneratorBase::PolygonConcentricCircleMeshGeneratorBa
   declareMeshProperty<bool>("interface_boundaries", false);
   declareMeshProperty<std::set<boundary_id_type>>("interface_boundary_ids", {});
 }
+
+std::unique_ptr<pugi::xml_document>
+PolygonConcentricCircleMeshGeneratorBase::generateCSG()
+{
+  if(_num_sides != 4)
+  {
+    // Only square pins supported currently
+    MeshGenerator::generateCSG();
+  }
+  else
+  { 
+    auto root{std::make_unique<pugi::xml_document>()};
+    root->append_child("geometry");
+    pugi::xml_node geometry = root->child("geometry");
+
+    //create the ring regions
+    for(std::size_t i{0}; i<_ring_radii.size(); ++i)
+    {
+        std::string coeffs = "0.0 0.0 " + std::to_string(_ring_radii.at(i)); 
+        //assumption is that this is the first mesh generator, so _surfID starts at 1
+        MeshGenerator::make_surface(_surfID++, coeffs, "z-cylinder", geometry);
+    }
+
+    //create the outer boundary (for now forced that reflective BC, will later make this an input param)
+    MeshGenerator::make_surface(_surfID++, std::to_string(-_polygon_size), "x-plane", "reflective", geometry);
+    MeshGenerator::make_surface(_surfID++, std::to_string(_polygon_size), "x-plane", "reflective", geometry);
+    MeshGenerator::make_surface(_surfID++, std::to_string(-_polygon_size), "y-plane", "reflective", geometry);
+    MeshGenerator::make_surface(_surfID++, std::to_string(_polygon_size), "y-plane", "reflective", geometry);
+
+    //create the cylinder cells
+    std::string inner_region{"-1"};
+    std::vector<std::string> regions{inner_region};
+    for(std::size_t i{1}; i<_ring_radii.size(); ++i)
+    {
+        std::string region{std::to_string(i)+ " -" + std::to_string(i+1)};
+        regions.push_back(region);
+    }
+    std::string bckgd_region{std::to_string(_ring_radii.size())+ " "+ std::to_string(_ring_radii.size()+1)+ " -"+ std::to_string(_ring_radii.size()+2)+ " "+ std::to_string(_ring_radii.size()+3)+ " -"+ std::to_string(_ring_radii.size()+4)};
+    regions.push_back(bckgd_region);
+
+    std::vector<std::string> materials = {"2","void", "1", "3"}; //hardcoded for now for testing purposes, will later make as an input param
+    for(std::size_t i{0};i <materials.size();++i)
+    {
+      MeshGenerator::make_cell(_cellID++, materials.at(i), regions.at(i), 1, geometry);
+    }
+    return root;
+  }
+}
+
 
 std::unique_ptr<MeshBase>
 PolygonConcentricCircleMeshGeneratorBase::generate()
